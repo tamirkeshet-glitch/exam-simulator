@@ -114,15 +114,25 @@ Secrets לא נשמרים בקוד, רק ב-`.env.local`
 
 ### 3.3 ניהול טוקנים בצד שרת
 
-מכיוון ש-exam-simulator הוא שרת Next.js —
-מומלץ session אחד לכלל האפליקציה מול WeSign
-(service account), ולא token per-user,
-אלא אם WeSign דורש זהות per-end-user.
+**הוחלט**: החתימה היא פר-לקוח
+(כל לקוח/נבחן חותם בעצמו על המסמך שלו).
 
-**שאלה פתוחה למשתמש**:
-האם כל תלמיד/נבחן מקבל חשבון WeSign נפרד,
-או שיש חשבון שירות אחד ששולח מסמכים בשם המערכת?
-זה משפיע מהותית על מבנה ה-auth.
+המשמעות לארכיטקטורה:
+
+- ה-login מול WeSign מתבצע עם **חשבון שירות אחד**
+  (`WESIGN_USERNAME` / `WESIGN_PASSWORD`) —
+  זהו החשבון שיוצר ושולח את המסמך.
+- הלקוח/הנבחן **אינו** מתחבר בעצמו ל-WeSign
+  ואינו מחזיק token משלו.
+  הוא רק מקבל קישור/הודעה (SMS / Email / WhatsApp)
+  לחתימה על המסמך הספציפי שלו, דרך `Distribution`.
+- כלומר: token אחד (של חשבון השירות) בצד השרת,
+  ולכל לקוח יש `DocumentCollection` / `Distribution`
+  נפרדים המקושרים אליו ברשומת המשתמש הפנימית שלנו.
+- יש לשמור אצלנו מיפוי בין מזהה הנבחן במערכת
+  לבין מזהה המסמך/ההפצה ב-WeSign
+  (document collection id / distribution id),
+  כדי לדעת איזה נבחן שייך לאיזו חתימה.
 
 ---
 
@@ -250,10 +260,10 @@ Please answer in English, or in Hebrew — either is fine:
    האם כבר יש בידינו פרטי גישה (username/password/host)
    לסביבת בדיקות של WeSign?
 
-3. Is signing per-student (each exam-taker signs directly),
-   or does the system send on behalf of a single service account?
-   האם החתימה היא פר-נבחן, או שהמערכת שולחת
-   בשם חשבון שירות אחד?
+3. ~~Is signing per-student, or via a single service account?~~
+   **נענה**: החתימה היא פר-לקוח.
+   כל לקוח/נבחן חותם בעצמו, דרך חשבון שירות אחד
+   שמנהל את התקשורת מול WeSign (ראו סעיף 3.3).
 
 4. Do we need real-time status updates (webhook),
    or is polling `GET /v3/DocumentCollections/info/{id}` enough?
